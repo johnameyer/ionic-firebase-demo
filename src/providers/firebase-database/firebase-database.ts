@@ -13,7 +13,9 @@ import { Subject } from 'rxjs/Subject';
 @Injectable()
 export class FirebaseDatabaseProvider {
 
+  username: string = "Anonymous";
   messageSubject: Subject<Array<any>> = null;
+  userID: string;
 
   constructor() {
     var config = {
@@ -22,13 +24,25 @@ export class FirebaseDatabaseProvider {
     firebase.initializeApp(config);
   }
 
+  public setUsername(username: string){
+    this.username = username;
+    firebase.database().ref('users/' + this.getUser()).set({
+      username: username
+    });
+  }
+
+  public getUsername(){
+    return this.username;
+  }
+
   public pushMessage(message: String){
     var newPostKey = firebase.database().ref().child('posts').push().key;
     var updates = {};
-    updates['/posts/' + newPostKey] = {message: message, date: new Date()};
+    updates['/posts/' + newPostKey] = {message: message, date: new Date(), sender: this.getUser(), senderName: this.username};
 
     firebase.database().ref().update(updates, function(e){ console.error(e) });
   }
+
   public getMessages(){
     if(this.messageSubject === null){
       this.messageSubject = new Subject();
@@ -49,4 +63,9 @@ export class FirebaseDatabaseProvider {
     return this.messageSubject.asObservable();
   }
 
+  private getUser(): string {
+    if(!this.userID)
+      this.userID = firebase.database().ref().child('users').push().key;
+    return this.userID;
+  }
 }
